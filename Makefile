@@ -4,16 +4,25 @@ DLIB_DIR        = $(DLIB_DIR_H)/dlibs
 DLIB_DIR_LPATH  = $(foreach dir,$(DLIB_DIR),   -L$(dir)) # add prefix to all dir
 DLIB_DIR_H_IPATH= $(foreach dir,$(DLIB_DIR_H), -I$(dir)) # add prefix to all dir
 DLIB_DIR_RPATH  = $(foreach dir,$(DLIB_DIR),   -Wl,-rpath=$(dir)) # add prefix to all dir
-DLIB_NAME       = -lutilpp # insert here all dynamics libraries in DLIB_DIR_H you want to use
-# old -lerror -lstackTracer -lutilpp
+DLIB_NAME       = -lutilpp #-lerror -lstackTracer # insert here all dynamics libraries in DLIB_DIR_H you want to use
 # old -lclientOutput_strMap -lroute_easy -lclientInput_manager -lcookie_manager
 # OLD -LIBCOMMON = -lerror -lmemoryManager -lstackTracer -lfileUtil -larrayList_noSync -lmap_ArrayList_noSync -labstractFactoryCommon
-CFLAGS          = -Wall -Wextra -g -Ofast -DNDEBUG -Wno-variadic-macros -fPIC -Wl,--export-dynamic # Werror transforms warning in error
-DLIB_STD        = -lm -lpthread -lfcgi -lpqxx -lpq #-lgc
+################################################
+# COMPILER AND LINKER FLAGS AND OPTIONS
+################################################
+#CFLAGS          = -Wall -g -O3 -DNDEBUG -Wno-variadic-macros -fPIC -Wl,--export-dynamic # Werror transforms warning in error
+#CFLAGS          = -Wall -g -Ofast -DNDEBUG -Wno-variadic-macros -fPIC -Wl,--export-dynamic # change O3 to Ofast -> Specify -ofast to perform -O3 optimizations plus disregard strict standards compliance.
+#CFLAGS          = -Wall -g -Ofast -DNDEBUG -Wno-variadic-macros -fPIC -Wl,--export-dynamic -std=c++17 # standard support for c++17 - necessay to use std::variant 
+### USE THIS FLAG FOR PRODUCTION -Ofast
+CFLAGS          = -Wall -Wextra -g -Ofast -DNDEBUG -Wno-variadic-macros -fPIC -Wl,--export-dynamic -std=c++2a # standard support for c++17 - necessay to use std::variant
+### USE  THIS FLAG FOR TEST -Og -> debugging -O0 normal
+#CFLAGS          = -Wall -g -O0 -DNDEBUG -Wno-variadic-macros -fPIC -Wl,--export-dynamic -std=c++17 # TEST -Og
+DLIB_STD        = -lm -lpthread -lpqxx -lpq #-lfcgi -lgc
 DLIB            = $(DLIB_STD) $(DLIB_NAME)
-COMPILER_FLAGS  = $(CFLAGS) $(DLIB_DIR_LPATH) $(DLIB_DIR_H_IPATH)
-LINK_FLAGS      = $(COMPILER_FLAGS) $(DLIB_DIR_RPATH) # use -Wl,-rpath= when the library is not in global environment
+COMPILER_FLAGS  = $(CFLAGS) #$(DLIB_DIR_LPATH) $(DLIB_DIR_H_IPATH) # use $(DLIB_DIR_LPATH) $(DLIB_DIR_H_IPATH) when the library is not in global environment
+LINK_FLAGS      = $(COMPILER_FLAGS) #$(DLIB_DIR_RPATH) # use -Wl,-rpath= when the library is not in global environment
 LINK_DLIB       = $(LINK_FLAGS) -shared -Wl,-soname,$(LIB)
+
 ################################################
 # PATHS TO EXPORT LIBRARY TO BE GLOBAL IN SYSTEM
 ################################################
@@ -22,14 +31,17 @@ DLIB_DIR_GLOBAL   = /usr/local/lib
 ################################################
 # INCLUDE LIBRARIES OF THE LIBRARY
 ################################################
-PERCENT = 
+#POSTGRESQL = postgresql/postgresql.cpp
+
+BIND_BD_OBJ = 
+
 ################################################
 # END
 ################################################
 
 C_SRC_LIB       = 
 C_SRC_MAIN      = 
-C_SRC           = json.cpp $(PERCENT)
+C_SRC           = json.cpp #field.cpp obj.cpp sql.cpp table.cpp #$(BIND_BD_OBJ) bind_db_obj.cpp #$(POSTGRESQL)
 C_OBJ_ORI       = $(C_SRC:.cpp=.o)
 C_SRC_NAME_ONLY = $(notdir $(C_SRC))
 C_OBJ_NAME_ONLY = $(C_SRC_NAME_ONLY:.cpp=.o)
@@ -91,7 +103,7 @@ linker: cscrean clean add_c_src_main $(C_SRC:.cpp=.o) $(C_SRC_MAIN:.cpp=.o) mv_c
 $(C_SRC:.cpp=.o): %.o : %.cpp
 	$(info $ncompile: $<)
 	$(CC) $(COMPILER_FLAGS) -c $< -o $@ $(DLIB)
-	$(info $n)
+
 
 $(C_SRC_MAIN:.cpp=.o): %.o : %.cpp
 	$(info $ncompile: $<)
@@ -115,7 +127,8 @@ export_glib:
 	sudo ln -s $(DLIB_DIR_GLOBAL)/$(LIB) $(DLIB_DIR_GLOBAL)/$(LIB_NAME_ONLY)
 
 
-mv_c_obj: 
+mv_c_obj:
+	$(info $nmoving files to obj_dir)
 	mv $(C_OBJ_ORI) $(C_OBJ_DIR)
 
 # only in C_SRC variable is necessary to concatenate whit C_SRC_MAIN, all others just loading them again
@@ -137,6 +150,7 @@ clean_lib: clean
 	sudo rm -rf $(LIB) $(DLIB_DIR)/$(LIB) $(DLIB_DIR_H)/headers/$(C_LIB_H)
 
 clean_glib: clean
+	$(info clean shared library library and headers)
 	sudo rm -rf $(LIB)
 	sudo rm -rf $(DLIB_DIR_GLOBAL)/$(LIB)
 	sudo rm -rf $(DLIB_DIR_H_GLOBAL)/$(C_LIB_H)
